@@ -10,3 +10,4 @@ hype/graph_dataset.cpp
 venv
 data
 .DS_Store
+*.csv
