@@ -12,6 +12,18 @@ import torch
 import os
 import timeit
 from hype import MANIFOLDS, MODELS
+import pandas
+
+def saveCoordinates(object_list, coordinates, filename):
+    df = pandas.DataFrame(coordinates)
+    df.loc[:, 'object'] = pandas.Series(object_list, index=df.index)
+
+    cols = df.columns.tolist()
+    cols_modified = cols[-1:] + cols[:-1]
+
+
+    df = df[cols_modified]
+    df.to_csv(filename, index=False)
 
 np.random.seed(42)
 
@@ -55,11 +67,15 @@ lt = chkpnt['embeddings']
 if not isinstance(lt, torch.Tensor):
     lt = torch.from_numpy(lt).cuda()
 
-
-
 tstart = timeit.default_timer()
 meanrank, maprank = eval_reconstruction(adj, model, workers=args.workers,
     progress=not args.quiet)
 etime = timeit.default_timer() - tstart
 
 print(f'Mean rank: {meanrank}, mAP rank: {maprank}, time: {etime}')
+
+
+sp_filename = args.file.split('.', 1)
+csv_filename = sp_filename[0] + '.csv'
+lt = torch.Tensor.cpu(lt)
+saveCoordinates(dset['objects']['obj'], lt.numpy(), csv_filename)
