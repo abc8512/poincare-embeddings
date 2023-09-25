@@ -75,7 +75,11 @@ etime = timeit.default_timer() - tstart
 print(f'Mean rank: {meanrank}, mAP rank: {maprank}, time: {etime}')
 
 
-sp_filename = args.file.split('.', 1)
-csv_filename = sp_filename[0] + '.csv'
+# sp_filename = args.file.split('.', 1)
+sp_filename = ""
+temp_filename = args.file
+while sp_filename == "":
+    sp_filename, temp_filename = temp_filename.split('.', 1)
+csv_filename = './' + sp_filename + '_' + chkpnt['conf']['manifold'] + str(chkpnt['conf']['dim']) + 'D_emb.csv'
 lt = torch.Tensor.cpu(lt)
 saveCoordinates(dset['objects']['obj'], lt.numpy(), csv_filename)
