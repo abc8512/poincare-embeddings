@@ -73,7 +73,7 @@ cdef class AdjacencyDataset:
         self.counts = self.counts ** self._sample_dampening
 
         S = (self.counts / np.sum(self.counts)) * self.counts.shape[0]
-        A = np.arange(0, self.counts.shape[0], dtype=np.long)
+        A = np.arange(0, self.counts.shape[0], dtype=np.int_)
         Tl = set(list((S < 1).nonzero()[0]))
         Th = set(list((S > 1).nonzero()[0]))
 
