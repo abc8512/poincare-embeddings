@@ -97,7 +97,9 @@ class LorentzManifold(Manifold):
         return d_p
 
     def expm(self, p, d_p, lr=None, out=None, normalize=False):
-        """Exponential map for hyperboloid"""
+        """Exponential map for hyperboloid
+            exp_p(d_p)
+        """
         if out is None:
             out = p
         if d_p.is_sparse:
@@ -137,7 +139,9 @@ class LorentzManifold(Manifold):
             p.copy_(newp)
 
     def logm(self, x, y):
-        """Logarithmic map on the Lorenz Manifold"""
+        """Logarithmic map on the Lorenz Manifold
+            Log_x(y)
+        """
         xy = th.clamp(self.ldot(x, y).unsqueeze(-1), max=-1)
         v = acosh(-xy, self.eps).div_(
             th.clamp(th.sqrt(xy * xy - 1), min=self._eps)
@@ -145,7 +149,9 @@ class LorentzManifold(Manifold):
         return self.normalize_tan(x, v)
 
     def ptransp(self, x, y, v, ix=None, out=None):
-        """Parallel transport for hyperboloid"""
+        """Parallel transport for hyperboloid
+            PT_{x->y}(v)
+        """
         if ix is not None:
             v_ = v
             x_ = x.index_select(0, ix)
