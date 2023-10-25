@@ -5,7 +5,8 @@
 # LICENSE file in the root directory of this source tree.
 
 from __future__ import absolute_import, division, print_function, unicode_literals
-from distutils.core import setup
+# from distutils.core import setup
+from setuptools import setup, find_namespace_packages
 from Cython.Build import cythonize
 import numpy
 from distutils.extension import Extension
@@ -43,6 +44,6 @@ extensions = [
 ]
 
 
-setup(
-    ext_modules=cythonize(extensions),
+setup(name='poincare_embedding', 
+    ext_modules=cythonize(extensions),    
 )
