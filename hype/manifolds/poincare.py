@@ -51,6 +51,65 @@ class PoincareManifold(EuclideanManifold):
             p_sqnorm = th.sum(p ** 2, dim=-1, keepdim=True)
             d_p = d_p * ((1 - p_sqnorm) ** 2 / 4).expand_as(d_p)
         return d_p
+    
+    def add(self, x, y):
+        """adopt from https://github.com/tgeral68/HyperbolicGraphAndGMM
+            HyperbolicGraphAndGMM/rcome/manifold/poincare_ball.py
+
+        Args:
+            x (_type_): _description_
+            y (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        if th.norm(x + y) == 0:
+            return th.zeros_like(x)
+        else:
+            nx = th.sum(x ** 2, dim=-1, keepdim=True).expand_as(x) * 1 
+            ny = th.sum(y ** 2, dim=-1, keepdim=True).expand_as(x) * 1
+            xy = (x * y).sum(-1, keepdim=True).expand_as(x)*1
+            return ((1 + 2*xy+ ny)*x + (1-nx)*y)/(1+2*xy+nx*ny)
+    
+    def logm(self, base_point, point):
+        """adopt from https://github.com/tgeral68/HyperbolicGraphAndGMM
+            HyperbolicGraphAndGMM/rcome/manifold/poincare_ball.py
+
+        Args:
+            base_point (_type_): _description_
+            point (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        kpx = self.add(-base_point, point)
+        norm_kpx = kpx.norm(2, -1, keepdim=True).expand_as(kpx)
+        norm_k = base_point.norm(2, -1, keepdim=True).expand_as(kpx)
+        res = (1-norm_k**2) * ((th.atanh(norm_kpx))) * (kpx/norm_kpx)
+        if(0 != len(th.nonzero(norm_kpx == 0))):
+            res[norm_kpx == 0] = 0
+        return res
+    
+    def expm(self, base_point, vector):
+        """adopt from https://github.com/tgeral68/HyperbolicGraphAndGMM
+            HyperbolicGraphAndGMM/rcome/manifold/poincare_ball.py
+
+        Args:
+            base_point (_type_): _description_
+            vector (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        norm_k = base_point.norm(2, -1, keepdim=True).expand_as(base_point) * 1
+        lambda_k = 1/(1-norm_k**2)
+        norm_x = vector.norm(2, -1, keepdim=True).expand_as(vector) * 1
+        direction = vector/norm_x
+        factor = th.tanh(lambda_k * norm_x)
+        res = self.add(base_point, direction*factor)
+        if(0 != len(th.nonzero((norm_x == 0)))):
+            res[norm_x == 0] = base_point[norm_x == 0]
+        return res
 
 
 class Distance(Function):
