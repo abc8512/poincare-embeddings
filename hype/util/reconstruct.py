@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import pandas
 import numpy as np
 from hype import MANIFOLDS, MODELS
@@ -9,7 +8,7 @@ from hype.graph import eval_reconstruction, load_adjacency_matrix
 import timeit
 
 
-class HypType(Enum):
+class HypType(str, Enum):
      Lorentz = 'lorentz'
      Poincare = 'poincare'
 
@@ -43,12 +42,12 @@ class Reconstruct:
 
     def load_embedding(self,
                        filename: str, delim: str=',', ) -> dict:
-        self.data = pandas.read_table(filename, delimiter=delim)
-        self.data.rename(columns={self.data.columns[0]:'node'}, inplace=True)
+        self._data = pandas.read_table(filename, delimiter=delim)
+        self._data.rename(columns={self._data.columns[0]:'node'}, inplace=True)
 
-        temp_coord = np.array(self.data.iloc[:, 1:])
-        self.node_names = self.data['node'].values
-        for i in range(self.data.shape[0]):
+        temp_coord = np.array(self._data.iloc[:, 1:])
+        self.node_names = self._data['node'].values
+        for i in range(self._data.shape[0]):
             self.embedding_dict[self.node_names[i]] = temp_coord[i]
 
         if HypType.Lorentz.value in filename:
@@ -61,7 +60,15 @@ class Reconstruct:
             ValueError("Invalid Hyperbolic Space Type.")
         self.manifold = MANIFOLDS[self.manifold_type.value]()
 
+        if self.manifold_type == HypType.Lorentz:
+            for i in range(len(self.node_names)):
+                temp_data = self.manifold.normalize(th.from_numpy(self.embedding_dict[self.node_names[i]]))
+                self.embedding_dict.update({self.node_names[i]: self._normalize(temp_data.numpy())})
+
         return self.embedding_dict
+    
+    def get_data(self) -> pandas.DataFrame:
+        return self._data
     
     
     def load_graph(self,
@@ -89,6 +96,25 @@ class Reconstruct:
                 pass
 
         self.manifold = MANIFOLDS[self.manifold_type.value]()
+        if self.manifold_type == HypType.Lorentz:
+            for i in range(len(self.node_names)):
+                temp_coord = self.manifold.normalize(th.from_numpy(self.embedding_dict[self.node_names[i]]))
+                self.embedding_dict.update({self.node_names[i]: self._normalize(temp_coord.numpy())})
+                aa = self.embedding_dict[self.node_names[i]]
+                check_val = aa[0] - np.sqrt(1 + np.dot(aa[1:], aa[1:]))
+                if check_val < 0 and np.abs(check_val) < 1e-7:
+                    print("here!")
+                #     aa = self._normalize(aa)
+                # self.embedding_dict.update({self.node_names[i]: self._normalize(self.embedding_dict[self.node_names[i]])})
+
+    def _normalize(self, x: np.array) -> np.array:
+        y = x
+        if self.manifold_type == HypType.Lorentz:
+            check_val = y[0] - np.sqrt(1 + np.dot(y[1:], y[1:]))
+            if check_val < 0 and np.abs(check_val) < 1e-7:
+                y[0] = np.sqrt(1 + np.dot(y[1:], y[1:]))
+
+        return y
 
 
     def _lorentz_to_poincare(self) -> None:
@@ -96,13 +122,13 @@ class Reconstruct:
             x = np.array(list(self.embedding_dict.values()))
             print(x.shape)
             y = x[:, 1:] / (x[:, 0, np.newaxis] + 1)
-            for i in range(self.data.shape[0]):
+            for i in range(self._data.shape[0]):
                 self.embedding_dict.update({self.node_names[i]: y[i, :]})
 
 
     def _poincare_to_lorentz(self) -> None:
         if self.manifold_type == HypType.Poincare:
-            for i in range(self.data.shape[0]):
+            for i in range(self._data.shape[0]):
                 x = self.embedding_dict[self.node_names[i]]
                 norm_x = np.linalg.norm(x)
                 self.embedding_dict.update({self.node_names[i]: np.append(1 + norm_x**2, 2*x) / (1 - norm_x**2)})
@@ -110,19 +136,22 @@ class Reconstruct:
 
     def sort_by_distance(self) -> None:
         self._calculate_distance_from_origin()
-        sorted_df = self.data.sort_values(by='distance')
+        sorted_df = self._data.sort_values(by='distance')
         return sorted_df
 
 
     def _calculate_distance_from_origin(self) -> None:
-        if not 'distance' in self.data.columns:
-            origin = np.zeros(self.dim)
-            if self.manifold_type == HypType.Lorentz:
-                origin = np.append(1, origin)
-            dist_origin = self.manifold.distance(th.Tensor(origin), 
-                                                    th.Tensor(np.array(list(self.embedding_dict.values())))).numpy()
-            df = pandas.DataFrame({'id': list(self.node_names), 'distance': dist_origin})
-            self.data.insert(len(self.data.columns), 'distance', dist_origin)
+        if 'distance' in self._data.columns:
+            del self._data['distance']
+
+        origin = np.zeros(self.dim)
+        if self.manifold_type == HypType.Lorentz:
+            origin = np.append(1, origin)
+        dist_origin = self.manifold.distance(th.Tensor(origin), 
+                                                th.Tensor(np.array(list(self.embedding_dict.values())))).numpy()
+        # df = pandas.DataFrame({'id': list(self.node_names), 'distance': dist_origin})
+        self._data.insert(len(self._data.columns), 'distance', dist_origin)
+
         
 
     def _save_coordinates(self, object_list, coordinates, filename) -> None:
@@ -198,13 +227,14 @@ class Reconstruct:
         
         self.embedding_filename = csv_filename
 
+    def get_embedding_filename(self) -> str:
+        return self.embedding_filename
+    
+    def get_coordinates(self):
+        pass
+
 
 
 
 
     # def plot_embedding2D(self, )
-
-
-
-
-

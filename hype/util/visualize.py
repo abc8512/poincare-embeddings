@@ -101,6 +101,29 @@ def plot_embedding2D(embedding_dict: dict, label_dict: dict, edge_list,
         plt.savefig(save_filename)
     plt.show()
 
+def calc_distances_from_zero(filename, delim: str=',') -> pandas.DataFrame:
+    emb_data = pandas.read_table(filename, delimiter=delim)
+    emb_data.rename(columns={emb_data.columns[0]:'node'}, inplace=True)
+
+    temp_coord = np.array(emb_data.iloc[:, 1:]) 
+    if 'lorentz' in filename:
+        temp_coord = lorentzToPoincare(temp_coord)
+    emb_coord = np.array(temp_coord)
+
+    embedding_dict = {}
+    node_attr = emb_data['node'].values
+    for i in range(emb_data.shape[0]):
+        embedding_dict[node_attr[i]] = emb_coord[i]
+
+    l_manifold = MANIFOLDS['poincare']()
+
+    node_keys = list(embedding_dict.keys())
+    dist_origin = l_manifold.distance(th.Tensor(np.zeros(emb_coord.shape[1])), th.Tensor(np.array(list(embedding_dict.values())))).numpy()
+
+    df = pandas.DataFrame({'id': node_keys, 'distance': dist_origin})
+
+    return df
+
 
 def lorentzToPoincare(x):
     return x[:, 1:] / (x[:, 0, np.newaxis] + 1)
